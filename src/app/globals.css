@@ -1,26 +1,452 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* SkillForge palette: deep slate surfaces, emerald green accents. */
+  --color-ink-950: #07090f;
+  --color-ink-900: #0b0e17;
+  --color-ink-850: #10141f;
+  --color-ink-800: #161b28;
+  --color-ink-700: #1f2636;
+  --color-ink-600: #2b3345;
+  --color-ink-500: #3d4658;
+  --color-ink-400: #6b768c;
+  --color-ink-300: #9aa3b8;
+  --color-ink-200: #c8cede;
+  --color-ink-100: #e7eaf2;
+
+  /* Primary accent: emerald green */
+  --color-ember-500: #10b981;
+  --color-ember-400: #34d399;
+  --color-ember-300: #6ee7b7;
+  --color-ember-600: #059669;
+  --color-ember-950: #022c22;
+
+  --color-mint-400: #34d399;
+  --color-mint-500: #10b981;
+  --color-mint-950: #022c22;
+
+  --color-sky-ember: #2dd4bf;
+  --color-sky-ember-deep: #042f2e;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Shared gradients so components stay in sync without repeating stops. */
+  --gradient-ember: linear-gradient(135deg, var(--color-ember-300) 0%, var(--color-ember-500) 55%, var(--color-ember-600) 100%);
+  --gradient-sheen: linear-gradient(
+    100deg,
+    transparent 20%,
+    color-mix(in oklab, white 45%, transparent) 50%,
+    transparent 80%
+  );
+  --gradient-aurora: linear-gradient(135deg,
+    color-mix(in oklab, var(--color-ember-500) 15%, transparent) 0%,
+    color-mix(in oklab, var(--color-sky-ember) 10%, transparent) 50%,
+    color-mix(in oklab, var(--color-mint-500) 8%, transparent) 100%
+  );
+  --shadow-glow-ember: 0 0 40px -10px color-mix(in oklab, var(--color-ember-500) 55%, transparent);
+  --shadow-glow-sky: 0 0 40px -10px color-mix(in oklab, var(--color-sky-ember) 55%, transparent);
+  --shadow-glow-mint: 0 0 40px -10px color-mix(in oklab, var(--color-mint-500) 55%, transparent);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  * {
+    border-color: var(--color-ink-700);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    color-scheme: dark;
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-ink-100);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Forge glow — emerald ambient light behind the whole app. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(90rem 60rem at 5% -20%, color-mix(in oklab, var(--color-ember-600) 18%, transparent), transparent 70%),
+      radial-gradient(70rem 45rem at 105% 0%, color-mix(in oklab, var(--color-sky-ember) 12%, transparent), transparent 65%),
+      radial-gradient(50rem 35rem at 50% 110%, color-mix(in oklab, var(--color-ember-500) 10%, transparent), transparent 70%),
+      radial-gradient(40rem 30rem at 80% 60%, color-mix(in oklab, var(--color-ember-300) 6%, transparent), transparent 70%);
+    animation: aurora-drift 20s ease-in-out infinite alternate;
+  }
+
+  /* Fine film grain over the glow so large dark areas are not perfectly flat. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ember-400);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-ember-500) 35%, transparent);
+  }
+
+  /* Custom scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-900);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-ink-600);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-500);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Glassmorphic card surface used throughout the app. */
+  .panel {
+    position: relative;
+    background-color: color-mix(in oklab, var(--color-ink-850) 88%, transparent);
+    border: 1px solid var(--color-ink-700);
+    border-radius: 1rem;
+    backdrop-filter: blur(12px);
+  }
+
+  .panel-raised {
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 8%, transparent) inset,
+      0 24px 48px -20px rgb(0 0 0 / 0.85),
+      0 0 0 0.5px color-mix(in oklab, var(--color-ink-600) 50%, transparent);
+  }
+
+  /* Interactive panel: lifts and warms its border on hover. */
+  .panel-hover {
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.25s ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .panel-hover:hover {
+    border-color: color-mix(in oklab, var(--color-ember-500) 45%, transparent);
+    box-shadow:
+      0 1px 0 0 color-mix(in oklab, white 10%, transparent) inset,
+      0 28px 56px -24px rgb(0 0 0 / 0.9),
+      0 0 32px -12px color-mix(in oklab, var(--color-ember-500) 60%, transparent);
+    transform: translateY(-3px);
+  }
+
+  /* Gradient hairline along the top edge of a panel. */
+  .accent-top::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-ember-400) 80%, transparent),
+      transparent
+    );
+    opacity: 0.8;
+  }
+
+  /* Small uppercase label that sits above a section heading. */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ember-400);
+  }
+
+  /* Shimmer gradient for loading states */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-ink-800) 25%,
+      var(--color-ink-700) 50%,
+      var(--color-ink-800) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
+  }
+
+  /* Glow button effect */
+  .btn-glow {
+    box-shadow: 0 0 28px -6px color-mix(in oklab, var(--color-ember-500) 65%, transparent);
+  }
+  .btn-glow:hover {
+    box-shadow: 0 0 40px -4px color-mix(in oklab, var(--color-ember-400) 75%, transparent);
+  }
+
+  /* Stat number display */
+  .stat-value {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--color-ink-100) 0%, var(--color-ember-300) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glowing divider */
+  .divider-glow {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-ember-500) 40%, transparent) 30%,
+      color-mix(in oklab, var(--color-sky-ember) 30%, transparent) 70%,
+      transparent
+    );
+  }
+
+  /* Testimonial quote styling */
+  .testimonial-quote {
+    position: relative;
+    padding-left: 1.25rem;
+  }
+  .testimonial-quote::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to bottom,
+      var(--color-ember-400),
+      var(--color-sky-ember)
+    );
+  }
+}
+
+@layer utilities {
+  /* The connecting line in the roadmap tree. */
+  .rail {
+    background-image: linear-gradient(
+      to bottom,
+      var(--color-ink-600) 0%,
+      var(--color-ink-600) 50%,
+      transparent 50%
+    );
+    background-size: 1px 8px;
+    background-repeat: repeat-y;
+  }
+
+  /* Blueprint grid used behind hero sections. */
+  .grid-bg {
+    background-image:
+      linear-gradient(var(--color-ink-400) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-ink-400) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* Fades content out towards the left/right edges — used for wide scrollers. */
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  }
+
+  /*
+   * A real gradient border. The border itself is painted by a background image
+   * clipped to the border box, then punched out of the middle with a mask.
+   */
+  .border-gradient {
+    position: relative;
+    border: 1px solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-image:
+      linear-gradient(var(--color-ink-850), var(--color-ink-850)),
+      var(--gradient-ember);
+  }
+
+  /* A highlight that sweeps across a surface on hover. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--gradient-sheen);
+    transform: translateX(-120%);
+    transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .sheen:hover::after {
+    transform: translateX(120%);
+  }
+
+  /* Ambient ember bloom, for hero copy and primary numbers. */
+  .glow-ember {
+    text-shadow: 0 0 28px color-mix(in oklab, var(--color-ember-500) 45%, transparent);
+  }
+
+  .animate-rise {
+    animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-rise-slow {
+    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s ease both;
+  }
+
+  .animate-float {
+    animation: float 5s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite;
+  }
+
+  .animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-ember-300) 0%, var(--color-ember-500) 50%, var(--color-sky-ember) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-warm {
+    background: var(--gradient-ember);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-cool {
+    background: linear-gradient(135deg, var(--color-sky-ember) 0%, var(--color-mint-400) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; filter: blur(20px); }
+  50% { opacity: 1; filter: blur(30px); }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes aurora-drift {
+  0% { opacity: 1; }
+  50% { opacity: 0.85; }
+  100% { opacity: 1; }
+}
+
+/* Slow expanding halo, used to mark "this needs your attention today". */
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-ember-400) 45%, transparent); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
