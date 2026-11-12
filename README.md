@@ -132,9 +132,9 @@ unique slug, giving it a stable public URL at `/p/<username>/<slug>`.
 
 **AI roadmap generator**
 On `/roadmaps/new`, describe what you want to learn and the AI drafts a
-module-by-module roadmap with topics and resource links. The draft is shown as
-a preview first; nothing is written to the database until you press "Create
-this roadmap". Any OpenAI-compatible chat-completions API works (OpenAI,
+module-by-module roadmap with topics and a resource link on every topic. The
+draft is shown as a preview first; nothing is written to the database until you
+press "Create this roadmap". Any OpenAI-compatible chat-completions API works (OpenAI,
 Gemini's compatibility endpoint, OpenRouter, or a local model), configured with
 `AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL`. Generated output is re-validated
 server-side (counts, lengths, and http(s)-only links) before saving.

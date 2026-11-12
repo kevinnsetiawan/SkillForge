@@ -49,6 +49,10 @@ describe("parseRoadmapPlan", () => {
     assert.equal(plan.title, "Belajar React");
     assert.equal(plan.modules.length, 1);
     assert.equal(plan.modules[0].topics[0].resource, "https://react.dev/learn");
+    assert.equal(
+      plan.modules[0].topics[1].resource,
+      "https://www.google.com/search?q=Components",
+    );
   });
 
   it("extracts JSON from a markdown fence and surrounding prose", () => {
@@ -57,7 +61,7 @@ describe("parseRoadmapPlan", () => {
     assert.equal(parseRoadmapPlan(raw).modules.length, 1);
   });
 
-  it("drops unsafe resource URLs but keeps the topic", () => {
+  it("replaces unsafe resource URLs with a search link but keeps the topic", () => {
     const plan = parseRoadmapPlan(
       JSON.stringify({
         ...validPlan,
@@ -71,7 +75,32 @@ describe("parseRoadmapPlan", () => {
     );
 
     assert.equal(plan.modules[0].topics[0].title, "Topic");
-    assert.equal(plan.modules[0].topics[0].resource, null);
+    assert.equal(
+      plan.modules[0].topics[0].resource,
+      "https://www.google.com/search?q=Topic",
+    );
+  });
+
+  it("gives every topic a link even when the model omits resources", () => {
+    const plan = parseRoadmapPlan(
+      JSON.stringify({
+        modules: [
+          {
+            title: "Module",
+            topics: ["Async JavaScript", { title: "Promises" }, { title: "Fetch", resource: "" }],
+          },
+        ],
+      }),
+    );
+
+    assert.deepEqual(
+      plan.modules[0].topics.map((topic) => topic.resource),
+      [
+        "https://www.google.com/search?q=Async%20JavaScript",
+        "https://www.google.com/search?q=Promises",
+        "https://www.google.com/search?q=Fetch",
+      ],
+    );
   });
 
   it("keeps only the http(s) part of a markdown-style resource", () => {

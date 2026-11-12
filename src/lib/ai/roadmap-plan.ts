@@ -42,7 +42,8 @@ export const PLAN_LIMITS = {
 
 export type RoadmapPlanTopic = {
   title: string;
-  resource: string | null;
+  /** Always a safe http(s) URL so no generated topic is left without a link. */
+  resource: string;
 };
 
 export type RoadmapPlanModule = {
@@ -130,27 +131,43 @@ function extractJson(raw: string): unknown {
   }
 }
 
+const FALLBACK_SEARCH_URL = "https://www.google.com/search?q=";
+
+/**
+ * Every generated topic must carry a link the learner can open. When the model
+ * omits one (or returns something unsafe/oversized), point at a search for the
+ * topic instead of rendering a dead end.
+ */
+function fallbackResource(title: string): string {
+  const query = title.slice(0, 90).trim() || "learning resources";
+  return `${FALLBACK_SEARCH_URL}${encodeURIComponent(query)}`;
+}
+
 /**
  * Keep only links the app is willing to render as an href. A model that invents
- * a URL gets a plain topic instead of a broken or unsafe link.
+ * a URL falls back to a search link instead of a broken or unsafe one.
  */
-function normalizeResource(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+function normalizeResource(value: unknown, title: string): string {
+  if (typeof value === "string") {
+    const raw = value.trim();
 
-  const raw = value.trim();
-  if (!raw) return null;
+    if (raw) {
+      const match = raw.match(/https?:\/\/[^\s<>"')\]]+/i);
+      const candidate = (match?.[0] ?? raw).replace(/[.,;:]+$/, "");
 
-  const match = raw.match(/https?:\/\/[^\s<>"')\]]+/i);
-  const candidate = (match?.[0] ?? raw).replace(/[.,;:]+$/, "");
+      if (candidate.length <= PLAN_LIMITS.resource && isSafeExternalUrl(candidate)) {
+        return candidate;
+      }
+    }
+  }
 
-  if (candidate.length > PLAN_LIMITS.resource) return null;
-  return isSafeExternalUrl(candidate) ? candidate : null;
+  return fallbackResource(title);
 }
 
 function topicFrom(value: unknown): RoadmapPlanTopic | null {
   if (typeof value === "string") {
     const title = text(value, PLAN_LIMITS.topicTitle);
-    return title.length >= 2 ? { title, resource: null } : null;
+    return title.length >= 2 ? { title, resource: fallbackResource(title) } : null;
   }
 
   const record = asRecord(value);
@@ -161,7 +178,7 @@ function topicFrom(value: unknown): RoadmapPlanTopic | null {
 
   return {
     title,
-    resource: normalizeResource(record.resource ?? record.link ?? record.url),
+    resource: normalizeResource(record.resource ?? record.link ?? record.url, title),
   };
 }
 
@@ -276,8 +293,9 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     "- 4-7 modules, each with 3-7 topics (18-40 topics total).",
     "- Order modules as milestones: foundations -> core concepts -> projects -> advanced/specialisation.",
     "- Each topic must be a specific, actionable thing to study or build, not a vague category.",
-    "- `resource` is one stable, well-known URL per topic (official docs, MDN, freeCodeCamp, roadmap.sh, a YouTube playlist) or null.",
-    "- Never invent a URL. If you are not sure a URL exists, use null.",
+    "- `resource` is required for every topic. Prefer one stable, well-known URL (official docs, MDN, freeCodeCamp, roadmap.sh, a YouTube playlist).",
+    "- Never invent a deep link. If you cannot name a specific page, use a search URL like `https://www.google.com/search?q=<topic>`.",
+    "- Never return null, an empty string, or a made-up URL for `resource`.",
     "- `title` max 80 chars, `description` 1-2 sentences max 500 chars, `goal` max 120 chars.",
     "- Write the title, description, goal and every module/topic in the same language as the learner's topic.",
     "- No duplicate topics. No markdown. JSON only.",

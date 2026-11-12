@@ -17,9 +17,9 @@ export default function NewRoadmapPage() {
         What do you want to learn?
       </h1>
       <p className="mt-1.5 max-w-2xl text-sm text-ink-400">
-        Describe your goal and the AI will draft a complete learning path — modules, topics, and
-        resources you can start working through right away. Prefer to build it yourself? Switch to
-        the manual tab.
+        Describe your goal and the AI will draft a complete learning path — modules, topics, and a
+        resource link for every topic, so you can start working through it right away. Prefer to
+        build it yourself? Switch to the manual tab.
       </p>
 
       <NewRoadmapTabs aiEnabled={aiEnabled} />

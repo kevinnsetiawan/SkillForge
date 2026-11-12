@@ -75,7 +75,7 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
             {generating ? "Designing your roadmap…" : plan ? "Generate again" : "Generate roadmap"}
           </Button>
           <span className="text-xs leading-relaxed text-ink-500">
-            AI drafts modules, topics, and resources. You can edit everything after saving.
+            AI drafts modules, topics, and a resource link for every topic. You can edit everything after saving.
           </span>
         </div>
 
