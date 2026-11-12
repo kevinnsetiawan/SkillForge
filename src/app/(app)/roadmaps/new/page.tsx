@@ -1,18 +1,28 @@
 import type { Metadata } from "next";
 
-import { NewRoadmapForm } from "./new-roadmap-form";
+import { getAiConfig } from "@/lib/ai/roadmap-generator";
+import { NewRoadmapTabs } from "./new-roadmap-tabs";
 
 export const metadata: Metadata = { title: "New roadmap" };
 
 export default function NewRoadmapPage() {
+  // Read server-side so the form can explain how to enable the generator
+  // instead of only failing after a submit.
+  const aiEnabled = Boolean(getAiConfig());
+
   return (
-    <div className="mx-auto w-full max-w-lg">
-      <h1 className="text-2xl font-semibold tracking-tight text-ink-100">New roadmap</h1>
-      <p className="mt-1 text-sm text-ink-400">
-        Give it a name and an optional goal. You will add modules and topics next.
+    <div className="mx-auto w-full max-w-3xl">
+      <p className="eyebrow mb-2">New roadmap</p>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink-100">
+        What do you want to learn?
+      </h1>
+      <p className="mt-1.5 max-w-2xl text-sm text-ink-400">
+        Describe your goal and the AI will draft a complete learning path — modules, topics, and
+        resources you can start working through right away. Prefer to build it yourself? Switch to
+        the manual tab.
       </p>
 
-      <NewRoadmapForm />
+      <NewRoadmapTabs aiEnabled={aiEnabled} />
     </div>
   );
 }

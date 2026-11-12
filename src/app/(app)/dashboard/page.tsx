@@ -137,7 +137,7 @@ export default async function DashboardPage() {
         {!hasRoadmaps ? (
           <EmptyState
             title="No roadmaps yet"
-            description="A roadmap is a Module → Topic tree. Build one from the curriculum you are following, then work through it topic by topic."
+            description="A roadmap is a Module → Topic tree. Describe what you want to learn and let AI draft it, or build one from the curriculum you are following, then work through it topic by topic."
             action={
               <ButtonLink href="/roadmaps/new" className="mt-1 btn-glow">
                 <MapIcon className="size-4" />

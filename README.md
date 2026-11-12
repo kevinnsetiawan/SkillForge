@@ -59,6 +59,10 @@ copy .env.example .env        # PowerShell: Copy-Item .env.example .env
 npx auth secret               # paste the value into AUTH_SECRET in .env
 ```
 
+To enable the AI roadmap generator, set `AI_API_KEY` (and, for non-OpenAI
+providers, `AI_BASE_URL` + `AI_MODEL`) in `.env`, then restart the dev server.
+`.env.example` has ready-to-use snippets for OpenAI, Gemini, and OpenRouter.
+
 Then create the schema and demo data:
 
 ```bash
@@ -108,6 +112,11 @@ Open <http://localhost:3000>.
 | `AUTH_URL` | no | Set when deploying behind a proxy |
 | `AUTH_TRUST_HOST` | no | `true` for local/containerised runs |
 | `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` | no | Enables the GitHub button; blank hides it |
+| `AI_API_KEY` | no | Enables the AI roadmap generator; blank shows a setup hint |
+| `AI_BASE_URL` | no | OpenAI-compatible endpoint, defaults to OpenAI |
+| `AI_MODEL` | no | Model name, defaults to `gpt-4o-mini` |
+| `AI_JSON_MODE` | no | Set `false` if the provider rejects `response_format` |
+| `AI_MAX_TOKENS` | no | Token cap for generation, defaults to `3000` |
 | `APP_TIMEZONE` | yes | IANA zone used for streaks and the heatmap |
 
 Changing `APP_TIMEZONE` changes which calendar day activity is attributed to.
@@ -120,6 +129,15 @@ Streaks are only correct if this matches the learner's timezone.
 **Roadmaps**
 Create, duplicate, rename, publish, and delete roadmaps. Each roadmap gets a
 unique slug, giving it a stable public URL at `/p/<username>/<slug>`.
+
+**AI roadmap generator**
+On `/roadmaps/new`, describe what you want to learn and the AI drafts a
+module-by-module roadmap with topics and resource links. The draft is shown as
+a preview first; nothing is written to the database until you press "Create
+this roadmap". Any OpenAI-compatible chat-completions API works (OpenAI,
+Gemini's compatibility endpoint, OpenRouter, or a local model), configured with
+`AI_API_KEY`, `AI_BASE_URL`, and `AI_MODEL`. Generated output is re-validated
+server-side (counts, lengths, and http(s)-only links) before saving.
 
 **Visual manager**
 Modules hold ordered topics. Reordering uses up/down buttons and writes the full
@@ -156,7 +174,8 @@ src/
     dal.ts               requireUser / getCurrentUser (password hash excluded)
     progress.ts          Progress, streak, and heatmap maths
     validation.ts        Zod schemas shared by actions and forms
-    actions/             Server actions: auth, roadmaps, structure, journal
+    ai/                  Provider-agnostic roadmap generation + plan parsing
+    actions/             Server actions: auth, roadmaps, structure, journal, AI
     queries.ts           Read-side queries, incl. public portfolio
   components/            UI, incl. the client-side roadmap manager
   proxy.ts               Route protection

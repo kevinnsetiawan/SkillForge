@@ -150,7 +150,7 @@ export function HeroMockup() {
 
               {/* Topic list */}
               <ul className="divide-y divide-ink-800/80">
-                {MOCK_TOPICS.map((topic, i) => (
+                {MOCK_TOPICS.map((topic) => (
                   <li
                     key={topic.label}
                     className={`flex items-center gap-2.5 px-4 py-2.5 transition-colors duration-150 ${

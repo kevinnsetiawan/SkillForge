@@ -396,7 +396,7 @@ export default async function HomePage() {
                   </div>
                   {/* Quote */}
                   <div className="testimonial-quote flex-1">
-                    <p className="text-sm leading-relaxed text-ink-300">"{t.quote}"</p>
+                    <p className="text-sm leading-relaxed text-ink-300">&ldquo;{t.quote}&rdquo;</p>
                   </div>
                   {/* Author */}
                   <div className="flex items-center gap-3">

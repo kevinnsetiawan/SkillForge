@@ -31,7 +31,7 @@ export function SignUpForm({ githubEnabled }: { githubEnabled: boolean }) {
             name="username"
             required
             placeholder="kevinsetiawan"
-            pattern="[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]"
+            pattern="[a-z0-9][-a-z0-9_]{1,28}[a-z0-9]"
             onChange={(event) => {
               // Mirror the typed name into an empty username to save a step.
               const nameInput = document.getElementById("name") as HTMLInputElement | null;

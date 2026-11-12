@@ -39,7 +39,7 @@ export function ProfileForm({
         >
           <div className="flex items-center gap-1">
             <span className="text-xs text-ink-500">/p/</span>
-            <Input id="username" name="username" required defaultValue={user.username} pattern="[a-z0-9][a-z0-9_-]{1,28}[a-z0-9]" />
+            <Input id="username" name="username" required defaultValue={user.username} pattern="[a-z0-9][-a-z0-9_]{1,28}[a-z0-9]" />
           </div>
         </Field>
 

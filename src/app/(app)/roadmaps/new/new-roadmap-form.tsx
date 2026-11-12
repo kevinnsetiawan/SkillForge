@@ -10,7 +10,7 @@ export function NewRoadmapForm() {
   const [state, action, pending] = useActionState(createRoadmap, undefined);
 
   return (
-    <form action={action} className="panel panel-raised mt-6 space-y-4 p-5">
+    <form action={action} className="panel panel-raised accent-top space-y-4 p-5">
       <FormBanner state={state} />
 
       <Field label="Title" htmlFor="title" errors={state?.errors?.title}>

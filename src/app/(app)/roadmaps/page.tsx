@@ -22,7 +22,8 @@ export default async function RoadmapsPage() {
           <p className="eyebrow mb-2">Roadmaps</p>
           <h1 className="text-2xl font-semibold tracking-tight text-ink-100">Your learning plans</h1>
           <p className="mt-1.5 text-sm text-ink-400">
-            Structure your learning plan as modules and topics, then work through it one node at a time.
+            Describe what you want to learn and let AI draft a module-by-module plan, or build one
+            manually. Then work through it one node at a time.
           </p>
         </div>
         <ButtonLink href="/roadmaps/new" className="sheen btn-glow">
@@ -35,7 +36,7 @@ export default async function RoadmapsPage() {
       {roadmaps.length === 0 ? (
         <EmptyState
           title="Nothing here yet"
-          description="Pick a curriculum you are following and turn it into modules and topics. You can reorder, rename and delete nodes at any time."
+          description="Describe a skill you want to learn and let AI turn it into modules and topics, or build the plan manually. You can reorder, rename and delete nodes at any time."
           action={
             <ButtonLink href="/roadmaps/new" className="mt-1 btn-glow">
               Create a roadmap
