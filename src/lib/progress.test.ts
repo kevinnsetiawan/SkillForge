@@ -7,7 +7,7 @@ import {
   computeStreak,
   mergeProgress,
 } from "@/lib/progress";
-import { isSafeExternalUrl, isValidUsername, slugify } from "@/lib/utils";
+import { isSafeExternalUrl, isValidUsername, slugify, topicResourceUrl } from "@/lib/utils";
 
 const TZ = "UTC";
 const NOW = new Date("2026-03-15T12:00:00.000Z");
@@ -258,5 +258,22 @@ describe("isSafeExternalUrl", () => {
     assert.equal(isSafeExternalUrl("vbscript:msgbox(1)"), false);
     assert.equal(isSafeExternalUrl("not a url"), false);
     assert.equal(isSafeExternalUrl(""), false);
+  });
+});
+
+describe("topicResourceUrl", () => {
+  it("keeps a usable resource link", () => {
+    assert.equal(topicResourceUrl("Hooks", "https://react.dev/learn"), "https://react.dev/learn");
+  });
+
+  it("falls back to a search link when the resource is missing or unsafe", () => {
+    assert.equal(
+      topicResourceUrl("React Hooks", null),
+      "https://www.google.com/search?q=React%20Hooks",
+    );
+    assert.equal(
+      topicResourceUrl("React Hooks", "javascript:alert(1)"),
+      "https://www.google.com/search?q=React%20Hooks",
+    );
   });
 });

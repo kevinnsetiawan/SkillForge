@@ -84,6 +84,8 @@ export function TopicRow({
             />
             <Input
               name="resource"
+              type="url"
+              required
               defaultValue={topic.resource ?? ""}
               placeholder="Resource link"
               aria-label="Resource link"
@@ -97,6 +99,9 @@ export function TopicRow({
             </Button>
             {editState?.errors?.title ? (
               <p className="w-full text-xs text-red-300">{editState.errors.title[0]}</p>
+            ) : null}
+            {editState?.errors?.resource ? (
+              <p className="w-full text-xs text-red-300">{editState.errors.resource[0]}</p>
             ) : null}
           </form>
         ) : (

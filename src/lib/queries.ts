@@ -2,7 +2,7 @@ import "server-only";
 
 import { db } from "./db";
 import { getActiveDays } from "./activity";
-import { appTimeZone } from "./utils";
+import { appTimeZone, topicResourceUrl } from "./utils";
 import { buildHeatmap, computeProgress, computeStreak, mergeProgress, type Progress, type Streak } from "./progress";
 
 const topicOrder = [{ position: "asc" as const }, { createdAt: "asc" as const }];
@@ -48,7 +48,7 @@ export type RoadmapTree = Awaited<ReturnType<typeof getRoadmap>>;
 
 /** Full module/topic tree for the roadmap manager, scoped to the owner. */
 export async function getRoadmap(roadmapId: string, userId: string) {
-  return db.roadmap.findFirst({
+  const roadmap = await db.roadmap.findFirst({
     where: { id: roadmapId, ownerId: userId },
     include: {
       modules: {
@@ -62,13 +62,27 @@ export async function getRoadmap(roadmapId: string, userId: string) {
       },
     },
   });
+
+  if (!roadmap) return null;
+
+  return {
+    ...roadmap,
+    modules: roadmap.modules.map((module) => ({
+      ...module,
+      topics: module.topics.map((topic) => ({
+        ...topic,
+        // Older topics may have been saved before resources were required.
+        resource: topicResourceUrl(topic.title, topic.resource),
+      })),
+    })),
+  };
 }
 
 export type TopicDetail = NonNullable<Awaited<ReturnType<typeof getTopicForUser>>>;
 
 /** A single topic with its module/roadmap context, for the journal screen. */
 export async function getTopicForUser(topicId: string, userId: string) {
-  return db.topic.findFirst({
+  const topic = await db.topic.findFirst({
     where: { id: topicId, module: { roadmap: { ownerId: userId } } },
     include: {
       entries: true,
@@ -80,6 +94,10 @@ export async function getTopicForUser(topicId: string, userId: string) {
       },
     },
   });
+
+  if (!topic) return null;
+
+  return { ...topic, resource: topicResourceUrl(topic.title, topic.resource) };
 }
 
 export type DashboardStats = {
@@ -310,6 +328,13 @@ export async function getPublicRoadmap(username: string, slug: string) {
 
   return {
     ...roadmap,
+    modules: roadmap.modules.map((module) => ({
+      ...module,
+      topics: module.topics.map((topic) => ({
+        ...topic,
+        resource: topicResourceUrl(topic.title, topic.resource),
+      })),
+    })),
     progress: mergeProgress(roadmap.modules.map((m) => computeProgress(m.topics.map((t) => t.status)))),
   };
 }

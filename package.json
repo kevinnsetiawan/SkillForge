@@ -17,6 +17,7 @@
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "db:backfill-resources": "tsx prisma/backfill-resources.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

@@ -175,9 +175,15 @@ export function ModuleCard({
 
           <div className="min-w-52 flex-1">
             <label htmlFor={`topic-resource-${module.id}`} className="mb-1 block text-[11px] text-ink-400">
-              Resource link <span className="text-ink-500">(optional)</span>
+              Resource link
             </label>
-            <Input id={`topic-resource-${module.id}`} name="resource" placeholder="https://..." />
+            <Input
+              id={`topic-resource-${module.id}`}
+              name="resource"
+              type="url"
+              required
+              placeholder="https://..."
+            />
           </div>
 
           <Button type="submit" size="sm" disabled={topicPending}>
@@ -189,6 +195,9 @@ export function ModuleCard({
 
           {topicState?.errors?.title ? (
             <p className="w-full text-xs text-red-300">{topicState.errors.title[0]}</p>
+          ) : null}
+          {topicState?.errors?.resource ? (
+            <p className="w-full text-xs text-red-300">{topicState.errors.resource[0]}</p>
           ) : null}
         </form>
       ) : null}

@@ -47,6 +47,13 @@ type SeedLearner = {
   roadmaps: SeedRoadmap[];
 };
 
+/** Every seeded topic gets a link, even when the fixture omits one. */
+function seedTopicResource(topic: SeedTopic): string {
+  if (topic.resource) return topic.resource;
+  const query = topic.title.slice(0, 90).trim() || "learning resources";
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
 /** Calendar days (UTC midnight) for the `back` most recent days, oldest first. */
 function recentDays(back: number): Date[] {
   const today = new Date();
@@ -237,7 +244,7 @@ async function seedLearner(learner: SeedLearner, days: Date[]) {
             topics: {
               create: seedModule.topics.map((seedTopic, topicIndex) => ({
                 title: seedTopic.title,
-                resource: seedTopic.resource ?? null,
+                resource: seedTopicResource(seedTopic),
                 position: topicIndex,
                 status: seedTopic.status,
                 entries:

@@ -136,6 +136,22 @@ export function isSafeExternalUrl(value: string): boolean {
   }
 }
 
+/** A guaranteed-working search link for a topic that has no usable resource. */
+export function topicSearchUrl(title: string): string {
+  const query = title.slice(0, 90).trim() || "learning resources";
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+/**
+ * Resolve a topic's study link. Topics saved before resources were required (or
+ * with an invalid URL) fall back to a search link so every topic stays clickable.
+ */
+export function topicResourceUrl(title: string, resource: string | null | undefined): string {
+  const raw = resource?.trim();
+  if (raw && raw.length <= 300 && isSafeExternalUrl(raw)) return raw;
+  return topicSearchUrl(title);
+}
+
 /** Guess a friendly label for a proof-of-work link from its host. */
 export function inferLinkLabel(value: string): string | null {
   try {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isSafeExternalUrl } from "@/lib/utils";
+import { isSafeExternalUrl, topicSearchUrl } from "@/lib/utils";
 
 /**
  * The AI generator is deliberately provider-agnostic: the model only has to
@@ -131,18 +131,6 @@ function extractJson(raw: string): unknown {
   }
 }
 
-const FALLBACK_SEARCH_URL = "https://www.google.com/search?q=";
-
-/**
- * Every generated topic must carry a link the learner can open. When the model
- * omits one (or returns something unsafe/oversized), point at a search for the
- * topic instead of rendering a dead end.
- */
-function fallbackResource(title: string): string {
-  const query = title.slice(0, 90).trim() || "learning resources";
-  return `${FALLBACK_SEARCH_URL}${encodeURIComponent(query)}`;
-}
-
 /**
  * Keep only links the app is willing to render as an href. A model that invents
  * a URL falls back to a search link instead of a broken or unsafe one.
@@ -161,13 +149,13 @@ function normalizeResource(value: unknown, title: string): string {
     }
   }
 
-  return fallbackResource(title);
+  return topicSearchUrl(title);
 }
 
 function topicFrom(value: unknown): RoadmapPlanTopic | null {
   if (typeof value === "string") {
     const title = text(value, PLAN_LIMITS.topicTitle);
-    return title.length >= 2 ? { title, resource: fallbackResource(title) } : null;
+    return title.length >= 2 ? { title, resource: topicSearchUrl(title) } : null;
   }
 
   const record = asRecord(value);

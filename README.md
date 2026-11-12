@@ -99,6 +99,7 @@ Open <http://localhost:3000>.
 | `npm run db:migrate` | Create/apply a migration (dev) |
 | `npm run db:deploy` | Apply migrations in production |
 | `npm run db:reset` | Drop, re-migrate, re-seed |
+| `npm run db:backfill-resources` | Give older topics without a link a search resource |
 | `npm run db:studio` | Prisma Studio |
 
 ---
@@ -128,7 +129,9 @@ Streaks are only correct if this matches the learner's timezone.
 
 **Roadmaps**
 Create, duplicate, rename, publish, and delete roadmaps. Each roadmap gets a
-unique slug, giving it a stable public URL at `/p/<username>/<slug>`.
+unique slug, giving it a stable public URL at `/p/<username>/<slug>`. Every
+topic must point at a study resource; older topics without one fall back to a
+search link, and `db:backfill-resources` can persist those links.
 
 **AI roadmap generator**
 On `/roadmaps/new`, describe what you want to learn and the AI drafts a

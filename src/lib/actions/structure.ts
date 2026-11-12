@@ -127,7 +127,7 @@ export async function createTopic(_prev: ActionState, formData: FormData): Promi
     data: {
       moduleId,
       title: parsed.data.title,
-      resource: parsed.data.resource || null,
+      resource: parsed.data.resource,
       position: (last?.position ?? -1) + 1,
     },
   });
@@ -143,12 +143,17 @@ export async function updateTopic(_prev: ActionState, formData: FormData): Promi
   const topic = await ownTopic(topicId, user.id);
   if (!topic) return { ok: false, message: "Topic not found." };
 
-  const parsed = topicSchema.safeParse({ topicId, title: formData.get("title"), resource: formData.get("resource") ?? "" });
+  const parsed = topicSchema.safeParse({
+    moduleId: topic.moduleId,
+    topicId,
+    title: formData.get("title"),
+    resource: formData.get("resource") ?? "",
+  });
   if (!parsed.success) return { ok: false, errors: parsed.error.flatten().fieldErrors };
 
   await db.topic.update({
     where: { id: topic.id },
-    data: { title: parsed.data.title, resource: parsed.data.resource || null },
+    data: { title: parsed.data.title, resource: parsed.data.resource },
   });
 
   refresh(topic.module.roadmapId);

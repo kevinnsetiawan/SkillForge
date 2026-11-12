@@ -62,13 +62,13 @@ export const moduleSchema = z.object({
 export const topicSchema = z.object({
   moduleId: trimmed.min(1, "Missing module."),
   title: trimmed.min(2, "Topic title must be at least 2 characters.").max(120, "Title is too long."),
+  // Every topic needs a study link, so the resource is required rather than
+  // optional. Links are rendered as hrefs, so reject javascript: and data:
+  // payloads the same way proof-of-work links are rejected.
   resource: trimmed
+    .min(1, "Add a resource link for this topic.")
     .max(300, "Resource link is too long.")
-    .optional()
-    .or(z.literal(""))
-    // Topic resources are rendered as hrefs, so reject javascript: and data:
-    // payloads the same way proof-of-work links are rejected.
-    .refine((value) => !value || isSafeExternalUrl(value), "Enter a valid http(s) link."),
+    .refine(isSafeExternalUrl, "Enter a valid http(s) link."),
 });
 
 export const reorderSchema = z.object({
