@@ -7,6 +7,11 @@ import {
   parseRoadmapPlan,
   RoadmapPlanError,
 } from "@/lib/ai/roadmap-plan";
+import {
+  detectRoadmapLanguage,
+  resolveRoadmapLanguage,
+  roadmapLanguageFromLocale,
+} from "@/lib/ai/languages";
 
 const validPlan = {
   title: "Belajar React",
@@ -66,17 +71,71 @@ describe("buildRoadmapPrompt", () => {
 
     assert.match(prompt, /Roadmap language: English\./);
     assert.match(prompt, /Write every title, description, goal, module title and topic title in English\./);
-    assert.doesNotMatch(prompt, /same language as the text under/);
   });
 
-  it("follows the language of the question when auto is selected", () => {
+  it("detects the language of the question when auto is selected", () => {
     const prompt = buildRoadmapPrompt({
-      topic: "Belajar SEO",
+      topic: "Belajar SEO, GEO dan AEO untuk pemula",
       level: "beginner",
       language: "auto",
     });
 
-    assert.match(prompt, /same language as the text under "What they want to learn"/);
+    assert.match(prompt, /Roadmap language: Indonesian\./);
+    assert.doesNotMatch(prompt, /same language as the text under/);
+  });
+
+  it("falls back to the browser locale for ambiguous topics", () => {
+    const prompt = buildRoadmapPrompt({
+      topic: "Digital Marketing",
+      level: "beginner",
+      language: "auto",
+      locale: "id-ID",
+    });
+
+    assert.match(prompt, /Roadmap language: Indonesian\./);
+  });
+
+  it("never sends the loose auto instruction to the model", () => {
+    const prompt = buildRoadmapPrompt({
+      topic: "SEO, GEO and AEO",
+      level: "beginner",
+      language: "auto",
+    });
+
+    assert.match(prompt, /Roadmap language: English\./);
+  });
+});
+
+describe("language detection", () => {
+  it("detects Indonesian, English and Spanish topics", () => {
+    assert.equal(detectRoadmapLanguage("Belajar React dari nol sampai bisa"), "id");
+    assert.equal(detectRoadmapLanguage("SEO, GEO and AEO"), "en");
+    assert.equal(detectRoadmapLanguage("Roadmap para dominar SEO y AEO"), "es");
+  });
+
+  it("returns null for acronym-only or ambiguous text", () => {
+    assert.equal(detectRoadmapLanguage("SEO"), null);
+    assert.equal(detectRoadmapLanguage("Digital Marketing"), null);
+  });
+
+  it("detects non-Latin scripts", () => {
+    assert.equal(detectRoadmapLanguage("Reactを学ぶ"), "ja");
+    assert.equal(detectRoadmapLanguage("تعلم React"), "ar");
+  });
+
+  it("maps browser locales to supported languages", () => {
+    assert.equal(roadmapLanguageFromLocale("id-ID"), "id");
+    assert.equal(roadmapLanguageFromLocale("in_ID"), "id");
+    assert.equal(roadmapLanguageFromLocale("en-US"), "en");
+    assert.equal(roadmapLanguageFromLocale("xx-YY"), null);
+    assert.equal(roadmapLanguageFromLocale(""), null);
+  });
+
+  it("resolves auto in the order: topic, locale, English", () => {
+    assert.equal(resolveRoadmapLanguage("auto", "Belajar React", "en-US"), "id");
+    assert.equal(resolveRoadmapLanguage("auto", "Digital Marketing", "id-ID"), "id");
+    assert.equal(resolveRoadmapLanguage("auto", "Digital Marketing", "xx-YY"), "en");
+    assert.equal(resolveRoadmapLanguage("es", "Belajar React", "en-US"), "es");
   });
 });
 

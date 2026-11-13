@@ -32,6 +32,7 @@ export async function generateRoadmapAction(
     topic: formData.get("topic"),
     level: formData.get("level") || "beginner",
     language: formData.get("language") || "auto",
+    locale: formData.get("locale") || "",
     goal: formData.get("goal") ?? "",
   });
 

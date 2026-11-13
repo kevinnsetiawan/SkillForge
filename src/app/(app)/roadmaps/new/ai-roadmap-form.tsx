@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 
 import { ExternalIcon, MapIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import { ROADMAP_LANGUAGES } from "@/lib/ai/languages";
 import type { RoadmapPlan } from "@/lib/ai/roadmap-plan";
 import type { ActionState } from "@/lib/validation";
 import { inferLinkLabel } from "@/lib/utils";
+
+const subscribeToLocale = () => () => {};
+const getBrowserLocale = () => navigator.language || "";
+const getServerLocale = () => "";
 
 export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [state, generate, generating] = useActionState<GenerateRoadmapState, FormData>(
@@ -32,6 +36,10 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
   const [language, setLanguage] = useState("auto");
   const [goal, setGoal] = useState("");
 
+  // Used only as a tie-breaker when "Same as my question" cannot detect the
+  // topic language (e.g. "Digital Marketing"). Never sent as a visible value.
+  const locale = useSyncExternalStore(subscribeToLocale, getBrowserLocale, getServerLocale);
+
   const plan = state?.ok ? state.plan : null;
   const errors = state?.ok ? undefined : state?.errors;
 
@@ -40,6 +48,7 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
       {!aiEnabled ? <AiSetupHint /> : null}
 
       <form action={generate} className="panel panel-raised accent-top space-y-4 p-5">
+        <input type="hidden" name="locale" value={locale} />
         {!state?.ok ? <FormBanner state={state} /> : null}
 
         <Field
@@ -78,7 +87,7 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
           <Field
             label="Roadmap language"
             htmlFor="language"
-            hint="Modules, topics, and resources follow this language."
+            hint="Auto-detects your question, then your browser language if it is unclear."
             errors={errors?.language}
           >
             <Select

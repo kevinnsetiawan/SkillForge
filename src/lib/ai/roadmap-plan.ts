@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import { ROADMAP_LANGUAGE_VALUES, roadmapLanguageName } from "@/lib/ai/languages";
+import {
+  ROADMAP_LANGUAGE_VALUES,
+  resolveRoadmapLanguage,
+  roadmapLanguageName,
+} from "@/lib/ai/languages";
 import { isSafeExternalUrl, topicSearchUrl } from "@/lib/utils";
 
 /**
@@ -21,6 +25,8 @@ export const aiRoadmapRequestSchema = z.object({
     .max(160, "Keep the topic under 160 characters."),
   level: z.enum(LEARNING_LEVELS).default("beginner"),
   language: z.enum(ROADMAP_LANGUAGE_VALUES).default("auto"),
+  /** Browser locale such as `id-ID`, used only when "auto" is ambiguous. */
+  locale: z.string().trim().max(35).optional().or(z.literal("")),
   goal: z
     .string()
     .trim()
@@ -264,14 +270,12 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     ? `Target goal: ${request.goal}`
     : "Target goal: not specified";
 
-  const languageName = roadmapLanguageName(request.language);
-  const languageLine = languageName
-    ? `Roadmap language: ${languageName}. Write every title, description, goal, module title and topic title in ${languageName}.`
-    : "Roadmap language: the same language as the text under \"What they want to learn\". If that text mixes languages, use its dominant language.";
+  // Resolve "auto" ourselves: the model tends to default to Spanish when the
+  // topic is short or acronym-heavy, ignoring any "same language" instruction.
+  const outputLanguage = resolveRoadmapLanguage(request.language, request.topic, request.locale);
+  const languageName = roadmapLanguageName(outputLanguage);
 
-  const resourceLanguageRule = languageName
-    ? `- Prefer high-quality resources in ${languageName}. If none is reliable, official English documentation is acceptable.`
-    : "- Prefer high-quality resources in the learner's language. If none is reliable, official English documentation is acceptable.";
+  const resourceLanguageRule = `- Prefer high-quality resources in ${languageName}. If none is reliable, official English documentation is acceptable.`;
 
   return [
     "Design a learning roadmap for this learner.",
@@ -279,7 +283,7 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     `What they want to learn: ${request.topic}`,
     `Current level: ${LEVEL_LABELS[request.level]}`,
     goalLine,
-    languageLine,
+    `Roadmap language: ${languageName}. Write every title, description, goal, module title and topic title in ${languageName}.`,
     "",
     "Return JSON with exactly this shape:",
     "{",
@@ -300,7 +304,7 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     "- Never invent a deep link. If you cannot name a specific page, use a search URL like `https://www.google.com/search?q=<topic>`.",
     "- Never return null, an empty string, or a made-up URL for `resource`.",
     "- `title` max 80 chars, `description` 1-2 sentences max 500 chars, `goal` max 120 chars.",
-    "- Obey the roadmap language exactly, even when the learner writes the topic or the goal in a different language.",
+    `- Write everything in ${languageName}. Never answer in another language, even if the topic or the goal is written in a different one.`,
     "- No duplicate topics. No markdown. JSON only.",
   ].join("\n");
 }

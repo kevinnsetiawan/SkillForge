@@ -8,6 +8,11 @@ import {
   type AiRoadmapRequest,
   type RoadmapPlan,
 } from "./roadmap-plan";
+import {
+  detectRoadmapLanguage,
+  resolveRoadmapLanguage,
+  roadmapLanguageName,
+} from "./languages";
 
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
@@ -67,6 +72,8 @@ type ChatCompletionResponse = {
   choices?: Array<{ message?: { content?: ChatCompletionContent } }>;
 };
 
+type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
+
 function extractContent(payload: ChatCompletionResponse): string {
   const content = payload.choices?.[0]?.message?.content;
 
@@ -80,6 +87,65 @@ function extractContent(payload: ChatCompletionResponse): string {
   }
 
   return "";
+}
+
+/** Only the learner-facing text, used to verify the output language. */
+function planText(plan: RoadmapPlan): string {
+  return [
+    plan.title,
+    plan.description,
+    plan.goal,
+    ...plan.modules.flatMap((module) => [
+      module.title,
+      ...module.topics.map((topic) => topic.title),
+    ]),
+  ].join(" ");
+}
+
+async function requestPlan({
+  config,
+  endpoint,
+  messages,
+  signal,
+  fallback,
+}: {
+  config: AiConfig;
+  endpoint: string;
+  messages: ChatMessage[];
+  signal: AbortSignal;
+  fallback: { topic: string; goal?: string };
+}): Promise<RoadmapPlan> {
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${config.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      temperature: 0.4,
+      max_tokens: config.maxTokens,
+      messages,
+      ...(config.jsonMode ? { response_format: { type: "json_object" } } : {}),
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    // Log provider details server-side, but never leak them to the browser.
+    const detail = await response.text().catch(() => "");
+    console.error(`[ai-roadmap] provider returned ${response.status}: ${detail.slice(0, 500)}`);
+    throw new RoadmapGenerationError(friendlyStatusMessage(response.status));
+  }
+
+  const payload = (await response.json()) as ChatCompletionResponse;
+  const content = extractContent(payload);
+
+  if (!content) {
+    throw new RoadmapGenerationError("The AI returned an empty response. Please try again.");
+  }
+
+  return parseRoadmapPlan(content, fallback);
 }
 
 function friendlyStatusMessage(status: number): string {
@@ -117,41 +183,62 @@ export async function generateRoadmapWithAI(request: AiRoadmapRequest): Promise<
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45_000);
 
+  const outputLanguage = resolveRoadmapLanguage(request.language, request.topic, request.locale);
+  const outputLanguageName = roadmapLanguageName(outputLanguage);
+  const fallback = { topic: request.topic, goal: request.goal };
+
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        temperature: 0.4,
-        max_tokens: config.maxTokens,
-        messages: [
-          { role: "system", content: ROADMAP_SYSTEM_PROMPT },
-          { role: "user", content: buildRoadmapPrompt(request) },
-        ],
-        ...(config.jsonMode ? { response_format: { type: "json_object" } } : {}),
-      }),
+    const messages: ChatMessage[] = [
+      { role: "system", content: ROADMAP_SYSTEM_PROMPT },
+      { role: "user", content: buildRoadmapPrompt(request) },
+    ];
+
+    let plan = await requestPlan({
+      config,
+      endpoint,
+      messages,
       signal: controller.signal,
+      fallback,
     });
 
-    if (!response.ok) {
-      // Log provider details server-side, but never leak them to the browser.
-      const detail = await response.text().catch(() => "");
-      console.error(`[ai-roadmap] provider returned ${response.status}: ${detail.slice(0, 500)}`);
-      throw new RoadmapGenerationError(friendlyStatusMessage(response.status));
+    // Belt and braces: if the model ignored the language (it happens with
+    // short, acronym-heavy topics), ask once more to rewrite the same plan.
+    const detectedLanguage = detectRoadmapLanguage(planText(plan));
+    if (detectedLanguage && detectedLanguage !== outputLanguage) {
+      const correction: ChatMessage[] = [
+        ...messages,
+        { role: "assistant", content: JSON.stringify(plan) },
+        {
+          role: "user",
+          content: [
+            `The previous JSON was written in ${roadmapLanguageName(detectedLanguage)}.`,
+            `Rewrite the entire JSON in ${outputLanguageName}.`,
+            "Translate the title, description, goal, module titles and topic titles.",
+            "Keep the same modules, topics and resource URLs; only the language changes.",
+            "Return JSON only, with the exact same shape.",
+          ].join(" "),
+        },
+      ];
+
+      try {
+        const retried = await requestPlan({
+          config,
+          endpoint,
+          messages: correction,
+          signal: controller.signal,
+          fallback,
+        });
+        const retriedLanguage = detectRoadmapLanguage(planText(retried));
+        if (!retriedLanguage || retriedLanguage === outputLanguage) {
+          plan = retried;
+        }
+      } catch (error) {
+        // Keep the first plan rather than failing the whole request.
+        console.error("[ai-roadmap] language correction failed", error);
+      }
     }
 
-    const payload = (await response.json()) as ChatCompletionResponse;
-    const content = extractContent(payload);
-
-    if (!content) {
-      throw new RoadmapGenerationError("The AI returned an empty response. Please try again.");
-    }
-
-    return parseRoadmapPlan(content, { topic: request.topic, goal: request.goal });
+    return plan;
   } catch (error) {
     if (error instanceof RoadmapGenerationError) throw error;
 
