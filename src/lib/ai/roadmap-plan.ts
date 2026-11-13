@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ROADMAP_LANGUAGE_VALUES, roadmapLanguageName } from "@/lib/ai/languages";
 import { isSafeExternalUrl, topicSearchUrl } from "@/lib/utils";
 
 /**
@@ -11,6 +12,7 @@ import { isSafeExternalUrl, topicSearchUrl } from "@/lib/utils";
 export const LEARNING_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 export type LearningLevel = (typeof LEARNING_LEVELS)[number];
 
+/** Form payload for a generation request, validated before any provider call. */
 export const aiRoadmapRequestSchema = z.object({
   topic: z
     .string()
@@ -18,6 +20,7 @@ export const aiRoadmapRequestSchema = z.object({
     .min(3, "Tell us what you want to learn (at least 3 characters).")
     .max(160, "Keep the topic under 160 characters."),
   level: z.enum(LEARNING_LEVELS).default("beginner"),
+  language: z.enum(ROADMAP_LANGUAGE_VALUES).default("auto"),
   goal: z
     .string()
     .trim()
@@ -252,6 +255,7 @@ const LEVEL_LABELS: Record<LearningLevel, string> = {
 export const ROADMAP_SYSTEM_PROMPT = [
   "You are SkillForge's curriculum designer.",
   "You turn a learner's goal into a practical, ordered learning roadmap.",
+  "The request names the exact output language. Every word you write must be in that language; never switch to another language.",
   "You always reply with a single JSON object and nothing else.",
 ].join(" ");
 
@@ -260,12 +264,22 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     ? `Target goal: ${request.goal}`
     : "Target goal: not specified";
 
+  const languageName = roadmapLanguageName(request.language);
+  const languageLine = languageName
+    ? `Roadmap language: ${languageName}. Write every title, description, goal, module title and topic title in ${languageName}.`
+    : "Roadmap language: the same language as the text under \"What they want to learn\". If that text mixes languages, use its dominant language.";
+
+  const resourceLanguageRule = languageName
+    ? `- Prefer high-quality resources in ${languageName}. If none is reliable, official English documentation is acceptable.`
+    : "- Prefer high-quality resources in the learner's language. If none is reliable, official English documentation is acceptable.";
+
   return [
     "Design a learning roadmap for this learner.",
     "",
     `What they want to learn: ${request.topic}`,
     `Current level: ${LEVEL_LABELS[request.level]}`,
     goalLine,
+    languageLine,
     "",
     "Return JSON with exactly this shape:",
     "{",
@@ -282,10 +296,11 @@ export function buildRoadmapPrompt(request: AiRoadmapRequest): string {
     "- Order modules as milestones: foundations -> core concepts -> projects -> advanced/specialisation.",
     "- Each topic must be a specific, actionable thing to study or build, not a vague category.",
     "- `resource` is required for every topic. Prefer one stable, well-known URL (official docs, MDN, freeCodeCamp, roadmap.sh, a YouTube playlist).",
+    resourceLanguageRule,
     "- Never invent a deep link. If you cannot name a specific page, use a search URL like `https://www.google.com/search?q=<topic>`.",
     "- Never return null, an empty string, or a made-up URL for `resource`.",
     "- `title` max 80 chars, `description` 1-2 sentences max 500 chars, `goal` max 120 chars.",
-    "- Write the title, description, goal and every module/topic in the same language as the learner's topic.",
+    "- Obey the roadmap language exactly, even when the learner writes the topic or the goal in a different language.",
     "- No duplicate topics. No markdown. JSON only.",
   ].join("\n");
 }

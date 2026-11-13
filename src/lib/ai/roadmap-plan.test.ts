@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import {
   aiRoadmapRequestSchema,
+  buildRoadmapPrompt,
   parseRoadmapPlan,
   RoadmapPlanError,
 } from "@/lib/ai/roadmap-plan";
@@ -39,6 +40,43 @@ describe("aiRoadmapRequestSchema", () => {
       aiRoadmapRequestSchema.safeParse({ topic: "React", level: "expert" }).success,
       false,
     );
+  });
+
+  it("defaults the roadmap language to auto", () => {
+    const parsed = aiRoadmapRequestSchema.parse({ topic: "React" });
+
+    assert.equal(parsed.language, "auto");
+  });
+
+  it("rejects an unsupported language", () => {
+    assert.equal(
+      aiRoadmapRequestSchema.safeParse({ topic: "React", language: "klingon" }).success,
+      false,
+    );
+  });
+});
+
+describe("buildRoadmapPrompt", () => {
+  it("asks for the roadmap in the language the learner picked", () => {
+    const prompt = buildRoadmapPrompt({
+      topic: "Belajar SEO",
+      level: "beginner",
+      language: "en",
+    });
+
+    assert.match(prompt, /Roadmap language: English\./);
+    assert.match(prompt, /Write every title, description, goal, module title and topic title in English\./);
+    assert.doesNotMatch(prompt, /same language as the text under/);
+  });
+
+  it("follows the language of the question when auto is selected", () => {
+    const prompt = buildRoadmapPrompt({
+      topic: "Belajar SEO",
+      level: "beginner",
+      language: "auto",
+    });
+
+    assert.match(prompt, /same language as the text under "What they want to learn"/);
   });
 });
 

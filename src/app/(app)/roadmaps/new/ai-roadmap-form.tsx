@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { ExternalIcon, MapIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import {
   saveGeneratedRoadmapAction,
   type GenerateRoadmapState,
 } from "@/lib/actions/ai-roadmap";
+import { ROADMAP_LANGUAGES } from "@/lib/ai/languages";
 import type { RoadmapPlan } from "@/lib/ai/roadmap-plan";
 import type { ActionState } from "@/lib/validation";
 import { inferLinkLabel } from "@/lib/utils";
@@ -24,6 +25,13 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
     undefined,
   );
 
+  // Controlled fields survive React's automatic form reset after an action, so
+  // learners can tweak their description and hit "Generate again".
+  const [topic, setTopic] = useState("");
+  const [level, setLevel] = useState("beginner");
+  const [language, setLanguage] = useState("auto");
+  const [goal, setGoal] = useState("");
+
   const plan = state?.ok ? state.plan : null;
   const errors = state?.ok ? undefined : state?.errors;
 
@@ -37,7 +45,7 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
         <Field
           label="What do you want to learn?"
           htmlFor="topic"
-          hint="Be specific about the skill and the outcome you want. The AI writes the roadmap in the same language you use."
+          hint="Be specific about the skill and the outcome you want. Your text stays here after generating, so you can adjust it."
           errors={errors?.topic}
         >
           <Textarea
@@ -46,17 +54,44 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
             required
             minLength={3}
             maxLength={160}
+            value={topic}
+            onChange={(event) => setTopic(event.target.value)}
             placeholder="e.g. Belajar React dari nol sampai bisa membuat portfolio yang deploy online"
             className="min-h-20"
           />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Your level" htmlFor="level" errors={errors?.level}>
-            <Select id="level" name="level" defaultValue="beginner">
+            <Select
+              id="level"
+              name="level"
+              value={level}
+              onChange={(event) => setLevel(event.target.value)}
+            >
               <option value="beginner">Beginner — start from zero</option>
               <option value="intermediate">Intermediate — know the basics</option>
               <option value="advanced">Advanced — go deep</option>
+            </Select>
+          </Field>
+
+          <Field
+            label="Roadmap language"
+            htmlFor="language"
+            hint="Modules, topics, and resources follow this language."
+            errors={errors?.language}
+          >
+            <Select
+              id="language"
+              name="language"
+              value={language}
+              onChange={(event) => setLanguage(event.target.value)}
+            >
+              {ROADMAP_LANGUAGES.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </Select>
           </Field>
 
@@ -66,7 +101,14 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
             hint="A job, project, or milestone."
             errors={errors?.goal}
           >
-            <Input id="goal" name="goal" maxLength={160} placeholder="e.g. Frontend Engineer" />
+            <Input
+              id="goal"
+              name="goal"
+              maxLength={160}
+              value={goal}
+              onChange={(event) => setGoal(event.target.value)}
+              placeholder="e.g. Frontend Engineer"
+            />
           </Field>
         </div>
 
@@ -75,7 +117,8 @@ export function AiRoadmapForm({ aiEnabled }: { aiEnabled: boolean }) {
             {generating ? "Designing your roadmap…" : plan ? "Generate again" : "Generate roadmap"}
           </Button>
           <span className="text-xs leading-relaxed text-ink-500">
-            AI drafts modules, topics, and a resource link for every topic. You can edit everything after saving.
+            AI drafts modules, topics, and a resource link for every topic. You can edit everything
+            after saving.
           </span>
         </div>
 

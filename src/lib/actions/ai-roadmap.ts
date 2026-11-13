@@ -31,6 +31,7 @@ export async function generateRoadmapAction(
   const parsed = aiRoadmapRequestSchema.safeParse({
     topic: formData.get("topic"),
     level: formData.get("level") || "beginner",
+    language: formData.get("language") || "auto",
     goal: formData.get("goal") ?? "",
   });
 
